@@ -147,6 +147,7 @@
         current-index="{{currentIndex}}"
       >
         <iron-image
+          id="asset"
           src="[[currentAsset.ImageLink.link]]"
           sizing="contain"
           preload
@@ -211,7 +212,7 @@
           <template>
             <paper-icon-button
               title="[[interface.name]]"
-              icon="[[interface.icon]]"
+              icon="[[_processIcon(interface.icon, playing)]]"
               on-tap="_interface"
             ></paper-icon-button>
           </template>
@@ -242,7 +243,8 @@
           },
           playing: {
             type: Boolean,
-            notifies: true
+            notifies: true,
+            observer: '_playingChanged'
           },
           overlayPage: {
             type: String,
@@ -265,11 +267,11 @@
                 icon: 'myicons:info-outline',
                 overlayTarget: 'info'
               },
-              {
-                name: 'Share',
-                icon: 'myicons:share',
-                overlayTarget: 'share'
-              },
+              // {
+              //   name: 'Share',
+              //   icon: 'myicons:share',
+              //   overlayTarget: 'share'
+              // },
               // {
               //   name: 'Purchase',
               //   icon: 'myicons:attach-money',
@@ -286,6 +288,8 @@
         // Get root pattern for app-route, for more info about `rootPath` see:
         // https://www.polymer-project.org/2.0/docs/upgrade#urls-in-templates
         this.rootPattern = (new URL(this.rootPath)).pathname;
+
+        this._startTimer = this._startTimer.bind(this);
       }
 
       _interface(e) {
@@ -337,6 +341,38 @@
       _computeCurrentAsset(assets, index) {
         if (!assets || !assets.length) return {};
         return assets[index];
+      }
+
+      _playingChanged(playing) {
+        if (playing) {
+          this._startTimer();
+          this.$.asset.addEventListener('loaded-changed', this._startTimer);
+        } else {
+          cancelAnimationFrame(this._playing);
+          this.$.asset.removeEventListener('loaded-changed', this._startTimer);
+        }
+      }
+
+      _startTimer(e) {
+        if (e && !e.detail.value) return;
+        this._timerTime = 60 * 4;
+        this._playing = requestAnimationFrame(()=>this._timer());
+      }
+
+      _timer() {
+        this._timerTime--;
+        if (!this._timerTime) {
+          this._next();
+        } else {
+          this._playing = requestAnimationFrame(()=>this._timer());
+        }
+      }
+
+      _processIcon(icon, playing) {
+        if (icon === 'myicons:play-arrow' && playing) {
+          return 'myicons:pause';
+        }
+        return icon;
       }
     }
 
