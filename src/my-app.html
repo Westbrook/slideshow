@@ -56,8 +56,21 @@
         height: 100%;
       }
       asset-list iron-image {
-        width: 200px;
-        height: 200px;
+        width: 30vw;
+        max-width: 200px;
+        height: 30vw;
+        max-height: 200px;
+        cursor: pointer;
+        transition: padding, border 300ms ease-in-out;
+      }
+      asset-list iron-image:hover {
+        padding: 5px;
+        border: 5px solid transparent;
+      }
+      asset-list .selected,
+      asset-list .selected:hover {
+        padding: 5px;
+        border: 5px solid #fff;
       }
       header {
         flex-grow: 0;
@@ -164,12 +177,15 @@
           current-index="{{currentIndex}}"
           >
           <iron-list
+            id="list"
             items="[[data.children]]"
             as="asset"
-            grid>
+            grid
+            selection-enabled
+            selected-item="{{currentAsset}}">
             <template>
               <iron-image
-                on-click="_selectIndex"
+                class$="[[_computeListClass(selected)]]"
                 sizing="cover"
                 src="[[asset.ImageLink.link]]"
               ></iron-image>
@@ -230,7 +246,8 @@
         return {
           data: {
             type: Object,
-            value: () => {}
+            value: () => {},
+            observer: '_dataChanged'
           },
           currentIndex: {
             type: Number,
@@ -239,7 +256,7 @@
           currentAsset: {
             type: Object,
             value: () => {},
-            computed: '_computeCurrentAsset(data.children, currentIndex)'
+            observer: '_currentAssetChanged'
           },
           playing: {
             type: Boolean,
@@ -317,7 +334,7 @@
         if (index < 0) {
           index = this.data.childCount - 1;
         }
-        this.currentIndex = index;
+        this.$.list.selectIndex(index);
       }
 
       _next() {
@@ -326,7 +343,7 @@
         if (index === this.data.childCount) {
           index = 0;
         }
-        this.currentIndex = index;
+        this.$.list.selectIndex(index);
       }
 
       _displayIndex(index) {
@@ -336,11 +353,6 @@
       _selectIndex(e) {
         this.currentIndex = e.model.index;
         this.overlayPage = '';
-      }
-
-      _computeCurrentAsset(assets, index) {
-        if (!assets || !assets.length) return {};
-        return assets[index];
       }
 
       _playingChanged(playing) {
@@ -373,6 +385,25 @@
           return 'myicons:pause';
         }
         return icon;
+      }
+
+      _currentAssetChanged() {
+        if(!this.data) return;
+        this.overlayPage = '';
+        this.currentIndex = this.data.children.indexOf(this.currentAsset);
+      }
+
+      _dataChanged() {
+        if (this.data.children && this.data.children.length) {
+          this.$.list.selectIndex(0);
+        }
+      }
+
+      _computeListClass(selected) {
+        if (selected) {
+          return 'selected';
+        }
+        return false;
       }
     }
 
