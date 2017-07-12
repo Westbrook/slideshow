@@ -1,0 +1,367 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/iron-pages/iron-pages.html">
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../bower_components/iron-image/iron-image.html">
+<link rel="import" href="../bower_components/iron-list/iron-list.html">
+<link rel="import" href="myicons.html">
+<link rel="import" href="my-styles.html">
+
+<dom-module id="my-app">
+  <template>
+    <style include="my-styles">
+      :host {
+        height: 100vh;
+
+        @apply --layout-vertical;
+
+        --slideshow-rhythm: 8px;
+        --paper-icon-button-ink-color: var(--slideshow-text-color, #fff);
+      }
+      main {
+        flex-grow: 1;
+        position: relative;
+      }
+      main > * {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background: #fff;
+      }
+      iron-image {
+        width: 100%;
+        height: 100%;
+        border: 10px solid transparent;
+        box-sizing: border-box;
+        background: inherit;
+      }
+      iron-pages {
+        color: #fff;
+        background: rgba(0,0,0,0.75);
+      }
+      iron-pages > * {
+        display: block;
+        padding: calc(var(--slideshow-rhythm) * 2);
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+      }
+      asset-list {
+        padding: 0;
+      }
+      asset-list iron-list {
+        box-sizing: border-box;
+        padding: calc(var(--slideshow-rhythm) * 2);
+        width: 100%;
+        height: 100%;
+      }
+      asset-list iron-image {
+        width: 30vw;
+        max-width: 200px;
+        height: 30vw;
+        max-height: 200px;
+        cursor: pointer;
+        transition: padding, border 300ms ease-in-out;
+      }
+      asset-list iron-image:hover {
+        padding: 5px;
+        border: 5px solid transparent;
+      }
+      asset-list .selected,
+      asset-list .selected:hover {
+        padding: 5px;
+        border: 5px solid #fff;
+      }
+      header {
+        flex-grow: 0;
+        flex-shrink: 0;
+        height: 50px;
+        background: var(--slideshow-background-color, #000000);
+        color: var(--slideshow-text-color, #ffffff);
+
+        @apply --layout;
+        @apply --layout-center;
+      }
+      pagination-controls,
+      nav {
+        flex-shrink: 0;
+        background: inherit;
+
+        @apply --layout;
+        @apply --layout-center;
+      }
+      .pagination {
+        flex-basis: 70px;
+        flex-shrink: 0;
+
+        @apply --layout;
+        @apply --layout-center;
+      }
+      .page {
+        width: 30px;
+        text-align: right;
+      }
+      .pages {
+        width: 40px;
+      }
+      h1 {
+        font-size: 1.5em;
+        margin: 0;
+        flex-grow: 1;
+        text-align: center;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        line-height: 50px;
+        font-weight: normal;
+      }
+      paper-icon-button {
+        width: 50px;
+        height: 50px;
+        flex-shrink: 0;
+      }
+      @media screen and (max-width: 569px) {
+        main {
+          margin: 50px 0;
+        }
+        header {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+        }
+        h1 {
+          padding-right: calc(var(--slideshow-rhythm) * 2);
+          text-align: left;
+        }
+        nav {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          width: 100%;
+
+          @apply --layout-around-justified;
+        }
+        nav dom-repeat {
+          display: none;
+        }
+      }
+      @media screen and (max-width: 414px) {
+        pagination-controls paper-icon-button {
+          display: none;
+        }
+      }
+    </style>
+    <main>
+      <asset-viewer assets="[[data.children]]" playing="[[playing]]" current-asset="{{currentAsset}}" current-index="{{currentIndex}}">
+        <iron-image id="asset" src="[[currentAsset.ImageLink.link]]" sizing="contain" preload="" fade=""></iron-image>
+      </asset-viewer>
+      <iron-pages selected="[[overlayPage]]" hidden$="[[!overlayPage]]" attr-for-selected="page-name">
+        <asset-list page-name="thumbnails" assets="[[data.children]]" current-index="{{currentIndex}}">
+          <iron-list id="list" items="[[data.children]]" as="asset" grid="" selection-enabled="" selected-item="{{currentAsset}}">
+            <template>
+              <iron-image class$="[[_computeListClass(selected)]]" sizing="cover" src="[[asset.ImageLink.link]]"></iron-image>
+            </template>
+          </iron-list>
+        </asset-list>
+        <asset-info page-name="info" asset="[[currentAsset]]">
+          <h2>[[currentAsset.Iptc.headline]]</h2>
+          <p>[[currentAsset.Iptc.caption]]</p>
+        </asset-info>
+        <social-share page-name="share">Social Share</social-share>
+        <asset-purchase page-name="purchase" asset="[[currentAsset]]">Asset Purchase</asset-purchase>
+      </iron-pages>
+    </main>
+    <header>
+      <pagination-controls>
+        <paper-icon-button on-tap="_previous" title="Previous" icon="myicons:chevron-left"></paper-icon-button>
+        <div class="pagination">
+          <span class="page">[[_displayIndex(currentIndex)]]</span>
+          <span class="pages">/[[data.childCount]]</span>
+        </div>
+        <paper-icon-button on-tap="_next" title="Next" icon="myicons:chevron-right"></paper-icon-button>
+      </pagination-controls>
+      <h1>[[data.name]]</h1>
+      <nav>
+        <dom-repeat items="[[interfaces]]" as="interface">
+          <template>
+            <paper-icon-button title="[[interface.name]]" icon="[[_processIcon(interface.icon, playing)]]" on-tap="_interface"></paper-icon-button>
+          </template>
+        </dom-repeat>
+      </nav>
+    </header>
+  </template>
+
+  <script>
+    class MyApp extends Polymer.Element {
+
+      static get is() { return 'my-app'; }
+
+      static get properties() {
+        return {
+          data: {
+            type: Object,
+            value: () => {},
+            observer: '_dataChanged'
+          },
+          currentIndex: {
+            type: Number,
+            value: 0
+          },
+          currentAsset: {
+            type: Object,
+            value: () => {},
+            observer: '_currentAssetChanged'
+          },
+          playing: {
+            type: Boolean,
+            notifies: true,
+            observer: '_playingChanged'
+          },
+          overlayPage: {
+            type: String,
+            value: ''
+          },
+          interfaces: {
+            type: Array,
+            value: () => [
+              {
+                name: 'Play/Pause',
+                icon: 'myicons:play-arrow'
+              },
+              {
+                name: 'Thumbnails',
+                icon: 'myicons:apps',
+                overlayTarget: 'thumbnails'
+              },
+              {
+                name: 'Information',
+                icon: 'myicons:info-outline',
+                overlayTarget: 'info'
+              },
+              // {
+              //   name: 'Share',
+              //   icon: 'myicons:share',
+              //   overlayTarget: 'share'
+              // },
+              // {
+              //   name: 'Purchase',
+              //   icon: 'myicons:attach-money',
+              //   overlayTarget: 'purchase'
+              // }
+            ]
+          }
+        };
+      }
+
+      constructor() {
+        super();
+
+        // Get root pattern for app-route, for more info about `rootPath` see:
+        // https://www.polymer-project.org/2.0/docs/upgrade#urls-in-templates
+        this.rootPattern = (new URL(this.rootPath)).pathname;
+
+        this._startTimer = this._startTimer.bind(this);
+      }
+
+      _interface(e) {
+        var index = e.model.index;
+        var item = this.interfaces[index];
+        if (!item.overlayTarget) {
+          this._togglePlayState();
+        } else {
+          this._goToOverlayTarget(item.overlayTarget);
+        }
+      }
+
+      _togglePlayState() {
+        // toggle play state
+        this.playing = !this.playing;
+      }
+
+      _goToOverlayTarget(target) {
+        this.overlayPage = (target === this.overlayPage) ? '' : target;
+      }
+
+      _previous() {
+        var index = this.currentIndex;
+        index--;
+        if (index < 0) {
+          index = this.data.childCount - 1;
+        }
+        this.$.list.selectIndex(index);
+      }
+
+      _next() {
+        var index = this.currentIndex;
+        index++;
+        if (index === this.data.childCount) {
+          index = 0;
+        }
+        this.$.list.selectIndex(index);
+      }
+
+      _displayIndex(index) {
+        return index + 1;
+      }
+
+      _selectIndex(e) {
+        this.currentIndex = e.model.index;
+        this.overlayPage = '';
+      }
+
+      _playingChanged(playing) {
+        if (playing) {
+          this._startTimer();
+          this.$.asset.addEventListener('loaded-changed', this._startTimer);
+        } else {
+          cancelAnimationFrame(this._playing);
+          this.$.asset.removeEventListener('loaded-changed', this._startTimer);
+        }
+      }
+
+      _startTimer(e) {
+        if (e && !e.detail.value) return;
+        this._timerTime = 60 * 4;
+        this._playing = requestAnimationFrame(()=>this._timer());
+      }
+
+      _timer() {
+        this._timerTime--;
+        if (!this._timerTime) {
+          this._next();
+        } else {
+          this._playing = requestAnimationFrame(()=>this._timer());
+        }
+      }
+
+      _processIcon(icon, playing) {
+        if (icon === 'myicons:play-arrow' && playing) {
+          return 'myicons:pause';
+        }
+        return icon;
+      }
+
+      _currentAssetChanged() {
+        if(!this.data) return;
+        this.overlayPage = '';
+        this.currentIndex = this.data.children.indexOf(this.currentAsset);
+      }
+
+      _dataChanged() {
+        if (this.data.children && this.data.children.length) {
+          this.$.list.selectIndex(0);
+        }
+      }
+
+      _computeListClass(selected) {
+        if (selected) {
+          return 'selected';
+        }
+        return false;
+      }
+    }
+
+    window.customElements.define(MyApp.is, MyApp);
+  </script>
+</dom-module>
